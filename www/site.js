@@ -9,60 +9,109 @@ document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('form-sitio');
     
     const inputNombre = document.getElementById('sitio-nombre');
-    const inputUrl = document.getElementById('sitio-url');       // Nuevo referencia
+    const inputUrl = document.getElementById('sitio-url');
     const inputUsuario = document.getElementById('sitio-usuario');
     const inputPass = document.getElementById('sitio-pass');
-    const inputDesc = document.getElementById('sitio-desc');     // Nuevo referencia
+    const inputDesc = document.getElementById('sitio-desc');
     
     const btnGen = document.getElementById('btn-gen');
     const btnToggle = document.getElementById('btn-toggle');
     const btnCancelar = document.getElementById('btn-cancelar');
 
+    // Estado local del sitio
+    let currentSiteData = {};
+
+    // --- CONFIGURACIÓN DE VALIDACIONES ---
+    // Definimos qué inputs validar, cómo encontrar su mensaje de error y cuál es la regla
+    const configValidaciones = [
+        {
+            input: inputNombre,
+            // El span está justo después del input
+            errorSpan: inputNombre.nextElementSibling, 
+            regla: (val) => val.trim().length > 0
+        },
+        {
+            input: inputUsuario,
+            errorSpan: inputUsuario.nextElementSibling,
+            regla: (val) => val.trim().length > 0
+        },
+        {
+            input: inputPass,
+            // El span está fuera del wrapper .pass-wrapper
+            errorSpan: inputPass.closest('.form-grupo').querySelector('.mensaje-error'),
+            regla: (val) => val.length >= 8
+        }
+    ];
+
+    // Inicializar listeners de validación (Blur y Input)
+    configValidaciones.forEach(conf => {
+        if (!conf.input || !conf.errorSpan) return;
+
+        // 1. Al abandonar el campo (Blur): Validar y marcar error si falla
+        conf.input.addEventListener('blur', () => {
+            validarCampo(conf);
+        });
+
+        // 2. Al escribir (Input): Limpiar error si el usuario empieza a corregir
+        conf.input.addEventListener('input', () => {
+            if (conf.input.classList.contains('input-error')) {
+                conf.input.classList.remove('input-error');
+                conf.errorSpan.style.display = 'none';
+            }
+        });
+    });
+
+    function validarCampo(conf) {
+        const esValido = conf.regla(conf.input.value);
+        if (!esValido) {
+            conf.input.classList.add('input-error');
+            conf.errorSpan.style.display = 'block';
+        } else {
+            conf.input.classList.remove('input-error');
+            conf.errorSpan.style.display = 'none';
+        }
+        return esValido;
+    }
+
     // --- Lógica de Inicialización ---
     
     if (siteId) {
-        // MODO EDICIÓN
         tituloForm.textContent = 'Editar Sitio';
         await cargarDatosSitio(siteId);
     } else if (catId) {
-        // MODO CREACIÓN
         tituloForm.textContent = 'Añadir Nuevo Sitio';
     } else {
-        alert("Error: Navegación inválida (faltan parámetros).");
+        alert("Error: Navegación inválida.");
         window.location.href = 'index.html';
         return;
     }
 
-    // --- Funciones ---
+    // --- Funciones Principales ---
 
     async function cargarDatosSitio(id) {
-        // Bloquear UI mientras carga
         document.body.style.opacity = '0.5';
-        
         const site = await api.getSite(id);
-        
         document.body.style.opacity = '1';
 
         if (!site) {
-            alert("Error al cargar el sitio o no existe.");
+            alert("Error al cargar el sitio.");
             window.location.href = 'index.html';
             return;
         }
         
-        // Rellenar formulario con TODOS los campos
+        currentSiteData = site;
+        
         inputNombre.value = site.name || '';
-        inputUrl.value = site.url || '';           // Cargar URL
+        inputUrl.value = site.url || '';
         inputUsuario.value = site.user || '';
         inputPass.value = site.password || '';
-        inputDesc.value = site.description || '';  // Cargar Descripción
+        inputDesc.value = site.description || '';
     }
 
-    // Botón Cancelar
     btnCancelar.addEventListener('click', () => {
         window.location.href = 'index.html';
     });
 
-    // Toggle Ver Contraseña
     btnToggle.addEventListener('click', () => {
         if (inputPass.type === 'password') {
             inputPass.type = 'text';
@@ -73,42 +122,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Generar Contraseña Segura
     btnGen.addEventListener('click', () => {
         const nuevaPass = generarPasswordSegura();
         inputPass.value = nuevaPass;
         inputPass.type = 'text';
         btnToggle.textContent = 'Ocultar';
+        
+        // Disparar evento input para limpiar errores si los había
+        inputPass.dispatchEvent(new Event('input'));
     });
 
-    // Enviar Formulario (Guardar/Actualizar)
+    // Enviar Formulario
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const nombre = inputNombre.value.trim();
-        const url = inputUrl.value.trim();
-        const usuario = inputUsuario.value.trim();
-        const password = inputPass.value;
-        const descripcion = inputDesc.value.trim();
+        // VALIDACIÓN FINAL: Ejecutar todas las reglas antes de enviar
+        let formularioValido = true;
+        configValidaciones.forEach(conf => {
+            if (!validarCampo(conf)) {
+                formularioValido = false;
+            }
+        });
 
-        // Validación simple
-        if (password.length < 8) {
-            mostrarError('La contraseña debe tener al menos 8 caracteres.');
+        if (!formularioValido) {
+            mostrarError('Por favor, corrige los campos marcados en rojo.');
             return;
         }
 
-        // Construir objeto con TODOS los campos
         const datosFormulario = {
-            name: nombre,
-            url: url,              // Guardar URL
-            user: usuario,
-            password: password,
-            description: descripcion // Guardar Descripción
+            name: inputNombre.value.trim(),
+            url: inputUrl.value.trim(),
+            user: inputUsuario.value.trim(),
+            password: inputPass.value,
+            description: inputDesc.value.trim()
         };
 
         try {
             if (siteId) {
-                // UPDATE (PUT)
                 const exito = await api.updateSite(siteId, datosFormulario);
                 if (exito) {
                     mostrarNotificacion('Sitio actualizado correctamente.', 'exito');
@@ -117,15 +167,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     mostrarError('Error al actualizar el sitio.');
                 }
             } else {
-                // CREATE (POST)
                 await api.createSite(catId, datosFormulario);
                 window.location.href = 'index.html';
             }
         } catch (error) {
             console.error(error);
-            mostrarError('Hubo un error de conexión al guardar.');
+            mostrarError('Hubo un error de conexión.');
         }
     });
+
+    // --- Utilidades ---
 
     function generarPasswordSegura() {
         const longitud = 12;
@@ -142,7 +193,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const msgSpan = document.getElementById('mensaje-notificacion');
         
         notif.className = `notificacion ${tipo}`;
-        // Estilos específicos si no están en CSS
         if (tipo === 'exito') notif.style.backgroundColor = '#28a745';
         else notif.style.backgroundColor = '#dc3545';
         

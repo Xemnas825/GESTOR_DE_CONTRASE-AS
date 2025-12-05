@@ -18,15 +18,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const formCategoria = document.getElementById('form-categoria');
     const inputCatNombre = document.getElementById('cat-nombre');
 
+    // --- VALIDACIÓN MODAL CATEGORÍA ---
+    const errorSpanCat = inputCatNombre.nextElementSibling; // El span de error
+
+    // 1. Validar al salir (Blur)
+    inputCatNombre.addEventListener('blur', () => {
+        validarNombreCategoria();
+    });
+
+    // 2. Limpiar al escribir
+    inputCatNombre.addEventListener('input', () => {
+        if (inputCatNombre.classList.contains('input-error')) {
+            inputCatNombre.classList.remove('input-error');
+            errorSpanCat.style.display = 'none';
+        }
+    });
+
+    function validarNombreCategoria() {
+        const valor = inputCatNombre.value.trim();
+        if (valor.length === 0) {
+            inputCatNombre.classList.add('input-error');
+            errorSpanCat.style.display = 'block';
+            return false;
+        }
+        inputCatNombre.classList.remove('input-error');
+        errorSpanCat.style.display = 'none';
+        return true;
+    }
+
     // --- Inicialización ---
     loadCategories();
 
     // --- Event Listeners ---
     
-    // Abrir/Cerrar Modal
+    // Abrir Modal
     btnAddCat.addEventListener('click', () => {
         modalCategoria.style.display = 'flex';
+        // Limpiar estado anterior
         inputCatNombre.value = '';
+        inputCatNombre.classList.remove('input-error');
+        errorSpanCat.style.display = 'none';
         inputCatNombre.focus();
     });
     
@@ -37,12 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Guardar Nueva Categoría
     formCategoria.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nombre = inputCatNombre.value.trim();
         
-        if (!nombre) {
-            mostrarNotificacion('El nombre es obligatorio', 'error');
-            return;
+        // Validar antes de enviar
+        if (!validarNombreCategoria()) {
+            return; // Detener si es inválido
         }
+
+        const nombre = inputCatNombre.value.trim();
 
         try {
             await api.createCategory(nombre);
@@ -147,7 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const div = document.createElement('div');
             div.className = 'item-sitio';
             
-            // Aseguramos que la URL tenga protocolo para que abra bien
             let safeUrl = site.url || '#';
             if (safeUrl !== '#' && !safeUrl.startsWith('http')) {
                 safeUrl = 'https://' + safeUrl;
@@ -163,31 +194,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     🔒 ••••••••
                 </div>
                 <div class="site-actions">
-                    <!-- Botón Abrir URL -->
                     <a href="${safeUrl}" target="_blank" class="btn-icon btn-ir" title="Ir al sitio">
                         🔗
                     </a>
-                    
-                    <!-- Botón Editar -->
                     <button class="btn-icon btn-editar edit-site-btn" title="Editar">
                         ✏️
                     </button>
-                    
-                    <!-- Botón Borrar -->
                     <button class="btn-icon btn-borrar delete-site-btn" title="Eliminar">
                         🗑️
                     </button>
                 </div>
             `;
 
-            // Lógica Botón Editar
             const btnEdit = div.querySelector('.edit-site-btn');
             btnEdit.addEventListener('click', () => {
-                // Redirigir al formulario en modo edición
                 window.location.href = `site.html?siteId=${site.id}`;
             });
 
-            // Lógica Botón Borrar
             const btnDel = div.querySelector('.delete-site-btn');
             btnDel.addEventListener('click', async () => {
                 if (confirm(`¿Eliminar el sitio "${site.name}"?`)) {
@@ -233,6 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const notif = document.getElementById('modal-notificacion');
         const msgSpan = document.getElementById('mensaje-notificacion');
         notif.className = `notificacion ${tipo}`;
+        if (tipo === 'exito') notif.style.backgroundColor = '#28a745';
+        else notif.style.backgroundColor = '#dc3545';
         msgSpan.textContent = mensaje;
         notif.style.display = 'block';
         setTimeout(() => {

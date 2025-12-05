@@ -1,154 +1,230 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const api = new ApiClient();
-    let categoriaActualId = null;
-    let terminoBusqueda = "";
+    // Estado de la aplicación
+    let currentCategoryId = null;
+    let allCategories = [];
+    let currentSites = [];
 
-    // los buenos DOM
-    const listaCat = document.getElementById('lista-categorias');
+    // Referencias al DOM
+    const listaCategorias = document.getElementById('lista-categorias');
     const listaSitios = document.getElementById('lista-sitios');
     const tituloSitios = document.getElementById('titulo-sitios');
-    const placeholder = document.getElementById('sitios-placeholder');
     const btnNuevoSitio = document.getElementById('btn-nuevo-sitio');
     const buscador = document.getElementById('buscador');
+    
+    // Modal Categoría
+    const modalCategoria = document.getElementById('modal-categoria');
+    const btnAddCat = document.getElementById('btn-add-cat');
+    const btnCancelCat = document.getElementById('btn-cancel-cat');
+    const formCategoria = document.getElementById('form-categoria');
+    const inputCatNombre = document.getElementById('cat-nombre');
 
-    // funcitas que suman nota :D
-    async function pintarCategorias() {
-        const categorias = await api.obtenerCategorias();
-        const filtradas = categorias.filter(c => c.nombre.toLowerCase().includes(terminoBusqueda));
+    // --- Inicialización ---
+    loadCategories();
+
+    // --- Event Listeners ---
+    
+    // Abrir/Cerrar Modal
+    btnAddCat.addEventListener('click', () => {
+        modalCategoria.style.display = 'flex';
+        inputCatNombre.value = '';
+        inputCatNombre.focus();
+    });
+    
+    btnCancelCat.addEventListener('click', () => {
+        modalCategoria.style.display = 'none';
+    });
+
+    // Guardar Nueva Categoría
+    formCategoria.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = inputCatNombre.value.trim();
         
-        listaCat.innerHTML = "";
-        filtradas.forEach(c => {
-            const div = document.createElement('div');
-            div.className = `item-categoria ${c.id === categoriaActualId ? 'categoria-activa' : ''}`;
-            div.innerHTML = `
-                <span>${c.nombre}</span>
-                <button class="btn-enlace-peligro btn-del-cat" data-id="${c.id}">[X]</button>
-            `;
-            // seleccionamos la categoria
-            div.addEventListener('click', (e) => {
-                if(!e.target.classList.contains('btn-del-cat')) seleccionarCategoria(c.id, c.nombre);
-            });
-            // eliminamos la categoria
-            div.querySelector('.btn-del-cat').addEventListener('click', () => eliminarCategoria(c.id, c.nombre));
-            listaCat.appendChild(div);
-        });
-    }
-
-    async function pintarSitios() {
-        if (!categoriaActualId) {
-            listaSitios.innerHTML = "";
-            placeholder.style.display = 'block';
+        // Validación requerida
+        if (!nombre) {
+            mostrarNotificacion('El nombre es obligatorio', 'error');
             return;
         }
 
-        const sitios = await api.obtenerSitios(categoriaActualId);
-        const filtrados = sitios.filter(s => 
-            s.nombre.toLowerCase().includes(terminoBusqueda) || 
-            s.usuario.toLowerCase().includes(terminoBusqueda)
-        );
-
-        listaSitios.innerHTML = "";
-        if (filtrados.length === 0) {
-            listaSitios.innerHTML = `<p class="placeholder">No hay sitios.</p>`;
-            placeholder.style.display = 'none';
-        } else {
-            placeholder.style.display = 'none';
-            filtrados.forEach(s => {
-                const div = document.createElement('div');
-                div.className = 'item-sitio';
-                div.innerHTML = `
-                    <div><strong>${s.nombre}</strong><small>${s.usuario}</small></div>
-                    <input type="password" value="${s.pass}" readonly style="width:80px">
-                    <div class="item-sitio-acciones">
-                        <button class="btn-enlace btn-copy" data-pass="${s.pass}">Copiar</button>
-                        <button class="btn-enlace btn-edit" data-id="${s.id}">Editar</button>
-                        <button class="btn-enlace-peligro btn-del" data-id="${s.id}">Eliminar</button>
-                    </div>
-                `;
-                // botoncicos
-                div.querySelector('.btn-copy').onclick = () => copiarPass(s.pass);
-                div.querySelector('.btn-del').onclick = () => eliminarSitio(s.id);
-                // NAVEGACIÓN A EDITAR (Pasamos ID por URL) 
-                div.querySelector('.btn-edit').onclick = () => {
-                    window.location.href = `site.html?id=${s.id}`;
-                };
-                listaSitios.appendChild(div);
-            });
+        try {
+            await api.createCategory(nombre);
+            modalCategoria.style.display = 'none';
+            mostrarNotificacion('Categoría creada con éxito', 'exito');
+            loadCategories(); // Recargar lista
+        } catch (error) {
+            mostrarNotificacion('Error al crear categoría', 'error');
         }
+    });
+
+    // Navegación a Añadir Sitio
+    btnNuevoSitio.addEventListener('click', () => {
+        if (currentCategoryId) {
+            // Redirigir a site.html pasando el ID de la categoría
+            window.location.href = `site.html?catId=${currentCategoryId}`;
+        }
+    });
+
+    // Buscador
+    buscador.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        filtrarInterfaz(query);
+    });
+
+    // --- Funciones Lógicas ---
+
+    async function loadCategories() {
+        allCategories = await api.getCategories();
+        renderCategories(allCategories);
     }
 
-    // funciones de acciones varias
-    function seleccionarCategoria(id, nombre) {
-        categoriaActualId = id;
-        tituloSitios.textContent = `Sitios en "${nombre}"`;
+    function renderCategories(categories) {
+        listaCategorias.innerHTML = '';
+        
+        categories.forEach(cat => {
+            const div = document.createElement('div');
+            div.className = `item-categoria ${currentCategoryId === cat.id ? 'categoria-activa' : ''}`;
+            div.dataset.id = cat.id;
+            
+            // HTML del item
+            div.innerHTML = `
+                <span>${cat.name}</span>
+                <button class="btn-enlace-peligro delete-cat-btn" title="Eliminar">&times;</button>
+            `;
+
+            // Click en la categoría (Cargar sitios)
+            div.addEventListener('click', (e) => {
+                // Evitar que se dispare al hacer click en borrar
+                if (e.target.classList.contains('delete-cat-btn')) return;
+                
+                selectCategory(cat.id, cat.name);
+            });
+
+            // Click en borrar categoría
+            const btnDelete = div.querySelector('.delete-cat-btn');
+            btnDelete.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm(`¿Eliminar la categoría "${cat.name}" y todos sus sitios?`)) {
+                    const success = await api.deleteCategory(cat.id);
+                    if (success) {
+                        mostrarNotificacion('Categoría eliminada', 'exito');
+                        // Si borramos la activa, limpiar panel derecho
+                        if (currentCategoryId === cat.id) {
+                            resetSitesPanel();
+                        }
+                        loadCategories();
+                    } else {
+                        mostrarNotificacion('Error al eliminar', 'error');
+                    }
+                }
+            });
+
+            listaCategorias.appendChild(div);
+        });
+    }
+
+    async function selectCategory(id, name) {
+        currentCategoryId = id;
+        tituloSitios.textContent = `Sitios de: ${name}`;
         btnNuevoSitio.disabled = false;
         
-        // guardamos la categoría en localStorage para usarla al crear el sitio nuevo
-        localStorage.setItem('current_cat_id', id);
-        
-        pintarCategorias();
-        pintarSitios();
-    }
+        // Actualizar estilos de selección
+        document.querySelectorAll('.item-categoria').forEach(el => {
+            if (parseInt(el.dataset.id) === id) el.classList.add('categoria-activa');
+            else el.classList.remove('categoria-activa');
+        });
 
-    async function eliminarCategoria(id, nombre) {
-        if(confirm(`¿Eliminar "${nombre}" y sus sitios?`)) {
-            await api.eliminarCategoria(id);
-            if(categoriaActualId === id) {
-                categoriaActualId = null;
-                btnNuevoSitio.disabled = true;
-                tituloSitios.textContent = "Sitios";
-            }
-            pintarCategorias();
-            pintarSitios();
+        // Cargar datos del servidor
+        listaSitios.innerHTML = '<p class="placeholder">Cargando...</p>';
+        const data = await api.getCategoryDetails(id);
+        
+        if (data && data.sites) {
+            currentSites = data.sites;
+            renderSites(currentSites);
+        } else {
+            currentSites = [];
+            listaSitios.innerHTML = '<p class="placeholder">No se encontraron sitios.</p>';
         }
     }
 
-    async function eliminarSitio(id) {
-        if(confirm("¿Eliminar sitio?")) {
-            await api.eliminarSitio(id);
-            pintarSitios();
+    function renderSites(sites) {
+        listaSitios.innerHTML = '';
+        
+        if (sites.length === 0) {
+            listaSitios.innerHTML = '<p class="placeholder">No hay sitios en esta categoría.</p>';
+            return;
+        }
+
+        sites.forEach(site => {
+            const div = document.createElement('div');
+            div.className = 'item-sitio';
+            div.innerHTML = `
+                <div>
+                    <strong>${site.name}</strong><br>
+                    <small style="color: #666;">${site.url || 'Sin URL'}</small>
+                </div>
+                <div>
+                    👤 ${site.user}<br>
+                    🔒 ••••••••
+                </div>
+                <div class="item-sitio-acciones">
+                    <button class="btn-peligro btn-sm delete-site-btn">Eliminar</button>
+                </div>
+            `;
+
+            // Borrar sitio
+            const btnDel = div.querySelector('.delete-site-btn');
+            btnDel.addEventListener('click', async () => {
+                if (confirm(`¿Eliminar el sitio "${site.name}"?`)) {
+                    const success = await api.deleteSite(site.id);
+                    if (success) {
+                        mostrarNotificacion('Sitio eliminado', 'exito');
+                        // Recargar la categoría actual
+                        selectCategory(currentCategoryId, tituloSitios.textContent.replace('Sitios de: ', ''));
+                    } else {
+                        mostrarNotificacion('Error al eliminar sitio', 'error');
+                    }
+                }
+            });
+
+            listaSitios.appendChild(div);
+        });
+    }
+
+    function resetSitesPanel() {
+        currentCategoryId = null;
+        currentSites = [];
+        tituloSitios.textContent = 'Sitios';
+        btnNuevoSitio.disabled = true;
+        listaSitios.innerHTML = '<p id="sitios-placeholder" class="placeholder">Selecciona una categoría.</p>';
+    }
+
+    function filtrarInterfaz(query) {
+        // Filtrar Categorías (Ocultar elementos del DOM)
+        const categoriasUI = listaCategorias.children;
+        Array.from(categoriasUI).forEach(catEl => {
+            const text = catEl.innerText.toLowerCase();
+            catEl.style.display = text.includes(query) ? 'flex' : 'none';
+        });
+
+        // Filtrar Sitios (Si hay una categoría seleccionada)
+        if (currentCategoryId && currentSites.length > 0) {
+            const filteredSites = currentSites.filter(s => 
+                s.name.toLowerCase().includes(query) || 
+                s.user.toLowerCase().includes(query)
+            );
+            renderSites(filteredSites);
         }
     }
 
-    function copiarPass(pass) {
-        navigator.clipboard.writeText(pass).then(() => mostrarNotificacion("Copiado!", false));
-    }
-
-    // eventos generalcillos
-    buscador.oninput = (e) => {
-        terminoBusqueda = e.target.value.toLowerCase();
-        pintarCategorias();
-        pintarSitios();
-    };
-
-    // 
-    btnNuevoSitio.onclick = () => {
+    function mostrarNotificacion(mensaje, tipo) {
+        const notif = document.getElementById('modal-notificacion');
+        const msgSpan = document.getElementById('mensaje-notificacion');
         
-        window.location.href = 'site.html'; 
-    };
+        notif.className = `notificacion ${tipo}`;
+        msgSpan.textContent = mensaje;
+        notif.style.display = 'block';
 
-    // modal de categorias
-    const modalCat = document.getElementById('modal-categoria');
-    document.getElementById('btn-add-cat').onclick = () => {
-        document.getElementById('cat-nombre').value = "";
-        modalCat.style.display = 'flex';
-    };
-    document.getElementById('btn-cancel-cat').onclick = () => modalCat.style.display = 'none';
-    
-    document.getElementById('form-categoria').onsubmit = async (e) => {
-        e.preventDefault();
-        const nombre = document.getElementById('cat-nombre').value;
-        if(nombre) {
-            await api.agregarCategoria(nombre);
-            modalCat.style.display = 'none';
-            pintarCategorias();
-        }
-    };
-
-    // iniciamos
-    const lastCat = localStorage.getItem('current_cat_id');
-    if(lastCat) {
-        
+        setTimeout(() => {
+            notif.style.display = 'none';
+        }, 3000);
     }
-    pintarCategorias();
 });

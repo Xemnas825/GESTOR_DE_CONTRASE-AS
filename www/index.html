@@ -1,29 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Contraseñas</title>
+    <link rel="stylesheet" href="./main.css">
 </head>
 <body>
-  <main>
-    <ul></ul>
-  </main>
-  <script>
-    let drawData = (data) => {
-      data.forEach(category => {
-        let parent = document.getElementsByTagName('ul')[0]
-        let child = document.createElement('li')
-        // child.innerText = JSON.stringify(category)
-        child.innerText = category.name
-        parent.appendChild(child)
-      })
-    }
+    <div class="container">
+        <header class="header-app">
+            <h1>Gestor de Contraseñas</h1>
+            <input type="search" id="buscador" placeholder="Buscar..." style="width: 250px;">
+        </header>
 
-    fetch("http://localhost:3000/categories")
-      .then(res => res.json())
-      .then(data => drawData(data))
-  </script>
+        <div class="layout-principal">
+            <!-- Panel Izquierdo: Categorías -->
+            <aside class="columna-categorias">
+                <div class="header-seccion">
+                    <h2>Categorías</h2>
+                    <button id="btn-add-cat" class="btn-primario btn-accion" title="Añadir">+</button>
+                </div>
+                <nav id="lista-categorias" class="lista-items"></nav>
+            </aside>
+
+            <!-- Panel Derecho: Sitios -->
+            <section class="columna-sitios">
+                <div class="header-seccion">
+                    <h2 id="titulo-sitios">Sitios</h2>
+                    <button id="btn-nuevo-sitio" class="btn-primario" disabled>Añadir Sitio</button>
+                </div>
+                <div id="lista-sitios" class="lista-items">
+                    <p id="sitios-placeholder" class="placeholder">Selecciona una categoría.</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Categoría -->
+    <div id="modal-categoria" class="modal-overlay">
+        <div class="modal-contenido">
+            <h3>Nueva Categoría</h3>
+            <form id="form-categoria">
+                <div class="form-grupo">
+                    <label>Nombre</label>
+                    <input type="text" id="cat-nombre" required>
+                </div>
+                <div class="modal-botones">
+                    <button type="button" id="btn-cancel-cat" class="btn-secundario">Cancelar</button>
+                    <button type="submit" class="btn-primario">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notificación -->
+    <div id="modal-notificacion" class="notificacion">
+        <span id="mensaje-notificacion"></span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./api.js"></script>
+    <script src="./main.js"></script>
 </body>
 </html>

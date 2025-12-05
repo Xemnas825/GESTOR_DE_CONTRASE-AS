@@ -39,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const nombre = inputCatNombre.value.trim();
         
-        // Validación requerida
         if (!nombre) {
             mostrarNotificacion('El nombre es obligatorio', 'error');
             return;
@@ -49,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await api.createCategory(nombre);
             modalCategoria.style.display = 'none';
             mostrarNotificacion('Categoría creada con éxito', 'exito');
-            loadCategories(); // Recargar lista
+            loadCategories(); 
         } catch (error) {
             mostrarNotificacion('Error al crear categoría', 'error');
         }
@@ -58,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Navegación a Añadir Sitio
     btnNuevoSitio.addEventListener('click', () => {
         if (currentCategoryId) {
-            // Redirigir a site.html pasando el ID de la categoría
             window.location.href = `site.html?catId=${currentCategoryId}`;
         }
     });
@@ -84,21 +82,16 @@ document.addEventListener('DOMContentLoaded', () => {
             div.className = `item-categoria ${currentCategoryId === cat.id ? 'categoria-activa' : ''}`;
             div.dataset.id = cat.id;
             
-            // HTML del item
             div.innerHTML = `
                 <span>${cat.name}</span>
                 <button class="btn-enlace-peligro delete-cat-btn" title="Eliminar">&times;</button>
             `;
 
-            // Click en la categoría (Cargar sitios)
             div.addEventListener('click', (e) => {
-                // Evitar que se dispare al hacer click en borrar
                 if (e.target.classList.contains('delete-cat-btn')) return;
-                
                 selectCategory(cat.id, cat.name);
             });
 
-            // Click en borrar categoría
             const btnDelete = div.querySelector('.delete-cat-btn');
             btnDelete.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -106,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const success = await api.deleteCategory(cat.id);
                     if (success) {
                         mostrarNotificacion('Categoría eliminada', 'exito');
-                        // Si borramos la activa, limpiar panel derecho
                         if (currentCategoryId === cat.id) {
                             resetSitesPanel();
                         }
@@ -126,13 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tituloSitios.textContent = `Sitios de: ${name}`;
         btnNuevoSitio.disabled = false;
         
-        // Actualizar estilos de selección
         document.querySelectorAll('.item-categoria').forEach(el => {
             if (parseInt(el.dataset.id) === id) el.classList.add('categoria-activa');
             else el.classList.remove('categoria-activa');
         });
 
-        // Cargar datos del servidor
         listaSitios.innerHTML = '<p class="placeholder">Cargando...</p>';
         const data = await api.getCategoryDetails(id);
         
@@ -156,28 +146,54 @@ document.addEventListener('DOMContentLoaded', () => {
         sites.forEach(site => {
             const div = document.createElement('div');
             div.className = 'item-sitio';
+            
+            // Aseguramos que la URL tenga protocolo para que abra bien
+            let safeUrl = site.url || '#';
+            if (safeUrl !== '#' && !safeUrl.startsWith('http')) {
+                safeUrl = 'https://' + safeUrl;
+            }
+
             div.innerHTML = `
-                <div>
+                <div class="site-info">
                     <strong>${site.name}</strong><br>
                     <small style="color: #666;">${site.url || 'Sin URL'}</small>
                 </div>
-                <div>
+                <div class="site-creds">
                     👤 ${site.user}<br>
                     🔒 ••••••••
                 </div>
-                <div class="item-sitio-acciones">
-                    <button class="btn-peligro btn-sm delete-site-btn">Eliminar</button>
+                <div class="site-actions">
+                    <!-- Botón Abrir URL -->
+                    <a href="${safeUrl}" target="_blank" class="btn-icon btn-ir" title="Ir al sitio">
+                        🔗
+                    </a>
+                    
+                    <!-- Botón Editar -->
+                    <button class="btn-icon btn-editar edit-site-btn" title="Editar">
+                        ✏️
+                    </button>
+                    
+                    <!-- Botón Borrar -->
+                    <button class="btn-icon btn-borrar delete-site-btn" title="Eliminar">
+                        🗑️
+                    </button>
                 </div>
             `;
 
-            // Borrar sitio
+            // Lógica Botón Editar
+            const btnEdit = div.querySelector('.edit-site-btn');
+            btnEdit.addEventListener('click', () => {
+                // Redirigir al formulario en modo edición
+                window.location.href = `site.html?siteId=${site.id}`;
+            });
+
+            // Lógica Botón Borrar
             const btnDel = div.querySelector('.delete-site-btn');
             btnDel.addEventListener('click', async () => {
                 if (confirm(`¿Eliminar el sitio "${site.name}"?`)) {
                     const success = await api.deleteSite(site.id);
                     if (success) {
                         mostrarNotificacion('Sitio eliminado', 'exito');
-                        // Recargar la categoría actual
                         selectCategory(currentCategoryId, tituloSitios.textContent.replace('Sitios de: ', ''));
                     } else {
                         mostrarNotificacion('Error al eliminar sitio', 'error');
@@ -198,14 +214,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function filtrarInterfaz(query) {
-        // Filtrar Categorías (Ocultar elementos del DOM)
         const categoriasUI = listaCategorias.children;
         Array.from(categoriasUI).forEach(catEl => {
             const text = catEl.innerText.toLowerCase();
             catEl.style.display = text.includes(query) ? 'flex' : 'none';
         });
 
-        // Filtrar Sitios (Si hay una categoría seleccionada)
         if (currentCategoryId && currentSites.length > 0) {
             const filteredSites = currentSites.filter(s => 
                 s.name.toLowerCase().includes(query) || 
@@ -218,11 +232,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function mostrarNotificacion(mensaje, tipo) {
         const notif = document.getElementById('modal-notificacion');
         const msgSpan = document.getElementById('mensaje-notificacion');
-        
         notif.className = `notificacion ${tipo}`;
         msgSpan.textContent = mensaje;
         notif.style.display = 'block';
-
         setTimeout(() => {
             notif.style.display = 'none';
         }, 3000);

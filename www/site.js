@@ -1,19 +1,58 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Obtener categoryId de la URL
+document.addEventListener('DOMContentLoaded', async () => {
+    // Detectar modo: Edición (siteId) o Creación (catId)
     const params = new URLSearchParams(window.location.search);
-    const categoryId = params.get('catId');
+    const siteId = params.get('siteId');
+    const catId = params.get('catId');
 
-    if (!categoryId) {
-        alert("Error: No se ha especificado una categoría.");
+    const tituloForm = document.getElementById('titulo-form');
+    const form = document.getElementById('form-sitio');
+    
+    const inputNombre = document.getElementById('sitio-nombre');
+    const inputUsuario = document.getElementById('sitio-usuario');
+    const inputPass = document.getElementById('sitio-pass');
+    
+    const btnGen = document.getElementById('btn-gen');
+    const btnToggle = document.getElementById('btn-toggle');
+    const btnCancelar = document.getElementById('btn-cancelar');
+
+    // Estado local del sitio (para no perder datos como description si no los editamos)
+    let currentSiteData = {};
+
+    // --- Lógica de Inicialización ---
+    
+    if (siteId) {
+        // MODO EDICIÓN
+        tituloForm.textContent = 'Editar Sitio';
+        await cargarDatosSitio(siteId);
+    } else if (catId) {
+        // MODO CREACIÓN
+        tituloForm.textContent = 'Añadir Nuevo Sitio';
+    } else {
+        alert("Error: Navegación inválida.");
         window.location.href = 'index.html';
         return;
     }
 
-    const form = document.getElementById('form-sitio');
-    const inputPass = document.getElementById('sitio-pass');
-    const btnGen = document.getElementById('btn-gen');
-    const btnToggle = document.getElementById('btn-toggle');
-    const btnCancelar = document.getElementById('btn-cancelar');
+    // --- Funciones ---
+
+    async function cargarDatosSitio(id) {
+        const site = await api.getSite(id);
+        if (!site) {
+            alert("Error al cargar el sitio.");
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        currentSiteData = site;
+        
+        // Rellenar formulario
+        inputNombre.value = site.name || '';
+        inputUsuario.value = site.user || '';
+        inputPass.value = site.password || '';
+        
+        // Si tuvieras campo URL en el HTML, lo rellenarías aquí también
+        // Por ejemplo: document.getElementById('sitio-url').value = site.url;
+    }
 
     // Botón Cancelar
     btnCancelar.addEventListener('click', () => {
@@ -35,63 +74,65 @@ document.addEventListener('DOMContentLoaded', () => {
     btnGen.addEventListener('click', () => {
         const nuevaPass = generarPasswordSegura();
         inputPass.value = nuevaPass;
-        inputPass.type = 'text'; // Mostrarla para que el usuario la vea
+        inputPass.type = 'text';
         btnToggle.textContent = 'Ocultar';
     });
 
-    // Enviar Formulario
+    // Enviar Formulario (Guardar/Actualizar)
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const nombre = document.getElementById('sitio-nombre').value.trim();
-        const usuario = document.getElementById('sitio-usuario').value.trim();
+        const nombre = inputNombre.value.trim();
+        const usuario = inputUsuario.value.trim();
         const password = inputPass.value;
 
-        // Validaciones Manuales (además del required de HTML)
         if (password.length < 8) {
             mostrarError('La contraseña debe tener al menos 8 caracteres.');
             return;
         }
 
-        const nuevoSitio = {
+        const datosFormulario = {
             name: nombre,
             user: usuario,
             password: password,
-            url: '', // Opcional, no está en el form pero el modelo lo tiene
-            description: ''
+            // Mantenemos datos antiguos si existen, o vacíos si es nuevo
+            url: currentSiteData.url || '', 
+            description: currentSiteData.description || ''
         };
 
         try {
-            await api.createSite(categoryId, nuevoSitio);
-            // Redirigir al home tras éxito
-            window.location.href = 'index.html';
+            if (siteId) {
+                // UPDATE
+                await api.updateSite(siteId, datosFormulario);
+                mostrarError('Sitio actualizado correctamente.'); // Reutilizo estilo error/notif
+                setTimeout(() => window.location.href = 'index.html', 1000);
+            } else {
+                // CREATE
+                await api.createSite(catId, datosFormulario);
+                window.location.href = 'index.html';
+            }
         } catch (error) {
-            mostrarError('Hubo un error al guardar el sitio.');
+            console.error(error);
+            mostrarError('Hubo un error al guardar.');
         }
     });
 
-    // --- Utilidades ---
-
     function generarPasswordSegura() {
-        const longitud = 8;
-        // Incluye mayúsculas, minúsculas, números y símbolos
+        const longitud = 12;
         const caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
         let password = "";
-        
-        // Garantizar al menos un tipo de cada uno (opcional, pero recomendado)
-        // Para simplificar y cumplir "no solo alfanuméricos":
         for (let i = 0; i < longitud; i++) {
-            const randomIndex = Math.floor(Math.random() * caracteres.length);
-            password += caracteres.charAt(randomIndex);
+            password += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
         }
-        
         return password;
     }
 
     function mostrarError(mensaje) {
         const notif = document.getElementById('modal-notificacion');
         const msgSpan = document.getElementById('mensaje-notificacion');
-        notif.className = 'notificacion error';
+        // Usamos clase 'error' por defecto para simplicidad, o podrías pasar tipo
+        notif.className = 'notificacion error'; 
+        notif.style.backgroundColor = '#333'; // Un color neutro para mensajes genéricos
         msgSpan.textContent = mensaje;
         notif.style.display = 'block';
         setTimeout(() => notif.style.display = 'none', 3000);

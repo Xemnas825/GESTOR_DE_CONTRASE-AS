@@ -39,7 +39,6 @@ const api = {
     },
 
     async getCategoryDetails(id) {
-        // Según tu controlador, esto devuelve la categoría Y sus sitios
         try {
             const response = await fetch(`${API_BASE_URL}/categories/${id}`);
             if (!response.ok) return null;
@@ -51,8 +50,20 @@ const api = {
     },
 
     // --- Sitios ---
+    
+    // Obtener un sitio individual (para edición)
+    async getSite(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/sites/${id}`);
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching site:', error);
+            return null;
+        }
+    },
+
     async createSite(categoryId, siteData) {
-        // Según tu controlador: app.post('/categories/:id', add)
         try {
             const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
                 method: 'POST',
@@ -62,6 +73,21 @@ const api = {
             return await response.json();
         } catch (error) {
             console.error('Error creating site:', error);
+            throw error;
+        }
+    },
+
+    // Actualizar un sitio existente
+    async updateSite(siteId, siteData) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/sites/${siteId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(siteData)
+            });
+            return response.ok;
+        } catch (error) {
+            console.error('Error updating site:', error);
             throw error;
         }
     },

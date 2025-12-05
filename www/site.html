@@ -1,39 +1,42 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Sitio</title>
     <link rel="stylesheet" href="./main.css">
 </head>
+
 <body>
     <div class="container" style="max-width: 600px; margin-top: 50px;">
         <header class="header-app">
             <h1 id="titulo-form">Gestión de Sitio</h1>
             <button id="btn-cancelar" class="btn-secundario">Cancelar</button>
         </header>
-        
+
         <div class="pagina-contenido" style="padding: 20px;">
             <form id="form-sitio">
-                <!-- ID oculto para saber si editamos -->
                 <input type="hidden" id="sitio-id">
-                
+
                 <div class="form-grupo">
                     <label>Nombre del Sitio *</label>
                     <input type="text" id="sitio-nombre" placeholder="Ej: Netflix, Banco, Gmail..." required>
+                    <span class="mensaje-error">Campo obligatorio</span>
                 </div>
 
-                <!-- NUEVO CAMPO: URL -->
                 <div class="form-grupo">
                     <label>URL del Sitio</label>
                     <input type="url" id="sitio-url" placeholder="https://www.ejemplo.com">
+                    <span class="mensaje-error">Campo obligatorio</span>
                 </div>
-                
+
                 <div class="form-grupo">
                     <label>Usuario / Email *</label>
                     <input type="text" id="sitio-usuario" required>
+                    <span class="mensaje-error">Campo obligatorio</span>
                 </div>
-                
+
                 <div class="form-grupo">
                     <label>Contraseña *</label>
                     <div class="pass-wrapper">
@@ -44,12 +47,12 @@
                     <span class="mensaje-error">Mínimo 8 caracteres</span>
                 </div>
 
-                <!-- NUEVO CAMPO: DESCRIPCIÓN -->
                 <div class="form-grupo">
                     <label>Descripción / Notas</label>
-                    <textarea id="sitio-desc" rows="4" placeholder="Notas adicionales, preguntas de seguridad, etc..."></textarea>
+                    <textarea id="sitio-desc" rows="4"
+                        placeholder="Notas adicionales, preguntas de seguridad, etc..."></textarea>
                 </div>
-                
+
                 <div style="text-align: right; margin-top: 20px;">
                     <button type="submit" class="btn-primario">Guardar Sitio</button>
                 </div>
@@ -57,13 +60,12 @@
         </div>
     </div>
 
-    <!-- Notificación -->
     <div id="modal-notificacion" class="notificacion">
         <span id="mensaje-notificacion"></span>
     </div>
 
-    <!-- Scripts -->
     <script src="./api.js"></script>
     <script src="./site.js"></script>
 </body>
+
 </html>

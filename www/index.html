@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestor de Contraseñas</title>
     <link rel="stylesheet" href="./main.css">
 </head>
+
 <body>
     <div class="container">
         <header class="header-app">
@@ -14,7 +16,6 @@
         </header>
 
         <div class="layout-principal">
-            <!-- Panel Izquierdo: Categorías -->
             <aside class="columna-categorias">
                 <div class="header-seccion">
                     <h2>Categorías</h2>
@@ -23,7 +24,6 @@
                 <nav id="lista-categorias" class="lista-items"></nav>
             </aside>
 
-            <!-- Panel Derecho: Sitios -->
             <section class="columna-sitios">
                 <div class="header-seccion">
                     <h2 id="titulo-sitios">Sitios</h2>
@@ -36,7 +36,6 @@
         </div>
     </div>
 
-    <!-- Modal Nueva Categoría -->
     <div id="modal-categoria" class="modal-overlay">
         <div class="modal-contenido">
             <h3>Nueva Categoría</h3>
@@ -54,13 +53,12 @@
         </div>
     </div>
 
-    <!-- Notificación -->
     <div id="modal-notificacion" class="notificacion">
         <span id="mensaje-notificacion"></span>
     </div>
 
-    <!-- Scripts -->
     <script src="./api.js"></script>
     <script src="./main.js"></script>
 </body>
+
 </html>

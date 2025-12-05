@@ -1,7 +1,6 @@
 const API_BASE_URL = 'http://localhost:3000';
 
 const api = {
-    // --- Categorías ---
     async getCategories() {
         try {
             const response = await fetch(`${API_BASE_URL}/categories`);
@@ -49,9 +48,7 @@ const api = {
         }
     },
 
-    // --- Sitios ---
-    
-    // Obtener un sitio individual (para edición)
+
     async getSite(id) {
         try {
             const response = await fetch(`${API_BASE_URL}/sites/${id}`);
@@ -77,7 +74,6 @@ const api = {
         }
     },
 
-    // Actualizar un sitio existente
     async updateSite(siteId, siteData) {
         try {
             const response = await fetch(`${API_BASE_URL}/sites/${siteId}`, {

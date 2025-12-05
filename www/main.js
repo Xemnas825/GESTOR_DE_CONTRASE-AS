@@ -1,32 +1,26 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Estado de la aplicación
     let currentCategoryId = null;
     let allCategories = [];
     let currentSites = [];
 
-    // Referencias al DOM
     const listaCategorias = document.getElementById('lista-categorias');
     const listaSitios = document.getElementById('lista-sitios');
     const tituloSitios = document.getElementById('titulo-sitios');
     const btnNuevoSitio = document.getElementById('btn-nuevo-sitio');
     const buscador = document.getElementById('buscador');
-    
-    // Modal Categoría
+
     const modalCategoria = document.getElementById('modal-categoria');
     const btnAddCat = document.getElementById('btn-add-cat');
     const btnCancelCat = document.getElementById('btn-cancel-cat');
     const formCategoria = document.getElementById('form-categoria');
     const inputCatNombre = document.getElementById('cat-nombre');
 
-    // --- VALIDACIÓN MODAL CATEGORÍA ---
-    const errorSpanCat = inputCatNombre.nextElementSibling; // El span de error
+    const errorSpanCat = inputCatNombre.nextElementSibling;
 
-    // 1. Validar al salir (Blur)
     inputCatNombre.addEventListener('blur', () => {
         validarNombreCategoria();
     });
 
-    // 2. Limpiar al escribir
     inputCatNombre.addEventListener('input', () => {
         if (inputCatNombre.classList.contains('input-error')) {
             inputCatNombre.classList.remove('input-error');
@@ -46,32 +40,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    // --- Inicialización ---
     loadCategories();
 
-    // --- Event Listeners ---
-    
-    // Abrir Modal
+
     btnAddCat.addEventListener('click', () => {
         modalCategoria.style.display = 'flex';
-        // Limpiar estado anterior
         inputCatNombre.value = '';
         inputCatNombre.classList.remove('input-error');
         errorSpanCat.style.display = 'none';
         inputCatNombre.focus();
     });
-    
+
     btnCancelCat.addEventListener('click', () => {
         modalCategoria.style.display = 'none';
     });
 
-    // Guardar Nueva Categoría
     formCategoria.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        // Validar antes de enviar
+
         if (!validarNombreCategoria()) {
-            return; // Detener si es inválido
+            return;
         }
 
         const nombre = inputCatNombre.value.trim();
@@ -80,26 +68,23 @@ document.addEventListener('DOMContentLoaded', () => {
             await api.createCategory(nombre);
             modalCategoria.style.display = 'none';
             mostrarNotificacion('Categoría creada con éxito', 'exito');
-            loadCategories(); 
+            loadCategories();
         } catch (error) {
             mostrarNotificacion('Error al crear categoría', 'error');
         }
     });
 
-    // Navegación a Añadir Sitio
     btnNuevoSitio.addEventListener('click', () => {
         if (currentCategoryId) {
             window.location.href = `site.html?catId=${currentCategoryId}`;
         }
     });
 
-    // Buscador
     buscador.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
         filtrarInterfaz(query);
     });
 
-    // --- Funciones Lógicas ---
 
     async function loadCategories() {
         allCategories = await api.getCategories();
@@ -108,12 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderCategories(categories) {
         listaCategorias.innerHTML = '';
-        
+
         categories.forEach(cat => {
             const div = document.createElement('div');
             div.className = `item-categoria ${currentCategoryId === cat.id ? 'categoria-activa' : ''}`;
             div.dataset.id = cat.id;
-            
+
             div.innerHTML = `
                 <span>${cat.name}</span>
                 <button class="btn-enlace-peligro delete-cat-btn" title="Eliminar">&times;</button>
@@ -149,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentCategoryId = id;
         tituloSitios.textContent = `Sitios de: ${name}`;
         btnNuevoSitio.disabled = false;
-        
+
         document.querySelectorAll('.item-categoria').forEach(el => {
             if (parseInt(el.dataset.id) === id) el.classList.add('categoria-activa');
             else el.classList.remove('categoria-activa');
@@ -157,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         listaSitios.innerHTML = '<p class="placeholder">Cargando...</p>';
         const data = await api.getCategoryDetails(id);
-        
+
         if (data && data.sites) {
             currentSites = data.sites;
             renderSites(currentSites);
@@ -169,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderSites(sites) {
         listaSitios.innerHTML = '';
-        
+
         if (sites.length === 0) {
             listaSitios.innerHTML = '<p class="placeholder">No hay sitios en esta categoría.</p>';
             return;
@@ -178,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sites.forEach(site => {
             const div = document.createElement('div');
             div.className = 'item-sitio';
-            
+
             let safeUrl = site.url || '#';
             if (safeUrl !== '#' && !safeUrl.startsWith('http')) {
                 safeUrl = 'https://' + safeUrl;
@@ -244,8 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (currentCategoryId && currentSites.length > 0) {
-            const filteredSites = currentSites.filter(s => 
-                s.name.toLowerCase().includes(query) || 
+            const filteredSites = currentSites.filter(s =>
+                s.name.toLowerCase().includes(query) ||
                 s.user.toLowerCase().includes(query)
             );
             renderSites(filteredSites);

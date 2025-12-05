@@ -4,19 +4,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const siteId = params.get('siteId');
     const catId = params.get('catId');
 
+    // Referencias al DOM
     const tituloForm = document.getElementById('titulo-form');
     const form = document.getElementById('form-sitio');
     
     const inputNombre = document.getElementById('sitio-nombre');
+    const inputUrl = document.getElementById('sitio-url');       // Nuevo referencia
     const inputUsuario = document.getElementById('sitio-usuario');
     const inputPass = document.getElementById('sitio-pass');
+    const inputDesc = document.getElementById('sitio-desc');     // Nuevo referencia
     
     const btnGen = document.getElementById('btn-gen');
     const btnToggle = document.getElementById('btn-toggle');
     const btnCancelar = document.getElementById('btn-cancelar');
-
-    // Estado local del sitio (para no perder datos como description si no los editamos)
-    let currentSiteData = {};
 
     // --- Lógica de Inicialización ---
     
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // MODO CREACIÓN
         tituloForm.textContent = 'Añadir Nuevo Sitio';
     } else {
-        alert("Error: Navegación inválida.");
+        alert("Error: Navegación inválida (faltan parámetros).");
         window.location.href = 'index.html';
         return;
     }
@@ -36,22 +36,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Funciones ---
 
     async function cargarDatosSitio(id) {
+        // Bloquear UI mientras carga
+        document.body.style.opacity = '0.5';
+        
         const site = await api.getSite(id);
+        
+        document.body.style.opacity = '1';
+
         if (!site) {
-            alert("Error al cargar el sitio.");
+            alert("Error al cargar el sitio o no existe.");
             window.location.href = 'index.html';
             return;
         }
         
-        currentSiteData = site;
-        
-        // Rellenar formulario
+        // Rellenar formulario con TODOS los campos
         inputNombre.value = site.name || '';
+        inputUrl.value = site.url || '';           // Cargar URL
         inputUsuario.value = site.user || '';
         inputPass.value = site.password || '';
-        
-        // Si tuvieras campo URL en el HTML, lo rellenarías aquí también
-        // Por ejemplo: document.getElementById('sitio-url').value = site.url;
+        inputDesc.value = site.description || '';  // Cargar Descripción
     }
 
     // Botón Cancelar
@@ -83,37 +86,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         e.preventDefault();
 
         const nombre = inputNombre.value.trim();
+        const url = inputUrl.value.trim();
         const usuario = inputUsuario.value.trim();
         const password = inputPass.value;
+        const descripcion = inputDesc.value.trim();
 
+        // Validación simple
         if (password.length < 8) {
             mostrarError('La contraseña debe tener al menos 8 caracteres.');
             return;
         }
 
+        // Construir objeto con TODOS los campos
         const datosFormulario = {
             name: nombre,
+            url: url,              // Guardar URL
             user: usuario,
             password: password,
-            // Mantenemos datos antiguos si existen, o vacíos si es nuevo
-            url: currentSiteData.url || '', 
-            description: currentSiteData.description || ''
+            description: descripcion // Guardar Descripción
         };
 
         try {
             if (siteId) {
-                // UPDATE
-                await api.updateSite(siteId, datosFormulario);
-                mostrarError('Sitio actualizado correctamente.'); // Reutilizo estilo error/notif
-                setTimeout(() => window.location.href = 'index.html', 1000);
+                // UPDATE (PUT)
+                const exito = await api.updateSite(siteId, datosFormulario);
+                if (exito) {
+                    mostrarNotificacion('Sitio actualizado correctamente.', 'exito');
+                    setTimeout(() => window.location.href = 'index.html', 1000);
+                } else {
+                    mostrarError('Error al actualizar el sitio.');
+                }
             } else {
-                // CREATE
+                // CREATE (POST)
                 await api.createSite(catId, datosFormulario);
                 window.location.href = 'index.html';
             }
         } catch (error) {
             console.error(error);
-            mostrarError('Hubo un error al guardar.');
+            mostrarError('Hubo un error de conexión al guardar.');
         }
     });
 
@@ -127,14 +137,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         return password;
     }
 
-    function mostrarError(mensaje) {
+    function mostrarNotificacion(mensaje, tipo) {
         const notif = document.getElementById('modal-notificacion');
         const msgSpan = document.getElementById('mensaje-notificacion');
-        // Usamos clase 'error' por defecto para simplicidad, o podrías pasar tipo
-        notif.className = 'notificacion error'; 
-        notif.style.backgroundColor = '#333'; // Un color neutro para mensajes genéricos
+        
+        notif.className = `notificacion ${tipo}`;
+        // Estilos específicos si no están en CSS
+        if (tipo === 'exito') notif.style.backgroundColor = '#28a745';
+        else notif.style.backgroundColor = '#dc3545';
+        
         msgSpan.textContent = mensaje;
         notif.style.display = 'block';
         setTimeout(() => notif.style.display = 'none', 3000);
+    }
+    
+    function mostrarError(mensaje) {
+        mostrarNotificacion(mensaje, 'error');
     }
 });

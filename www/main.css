@@ -110,18 +110,28 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Formularios */
 .form-grupo { margin-bottom: 15px; }
 .form-grupo label { display: block; margin-bottom: 5px; font-weight: bold; }
-input[type="text"], input[type="search"], input[type="password"] {
-    width: 100%; padding: 10px; border: 1px solid var(--color-borde); border-radius: 5px; box-sizing: border-box;
+
+/* Actualizado para incluir textarea y input[type="url"] */
+input[type="text"], 
+input[type="search"], 
+input[type="password"],
+input[type="url"],
+textarea {
+    width: 100%; 
+    padding: 10px; 
+    border: 1px solid var(--color-borde); 
+    border-radius: 5px; 
+    box-sizing: border-box;
+    font-family: inherit; /* Para que el textarea use la misma fuente */
 }
+
+textarea {
+    resize: vertical; /* Permite cambiar el alto pero no el ancho */
+}
+
 input.input-error { border-color: var(--color-peligro); }
 .mensaje-error { color: var(--color-peligro); font-size: 12px; margin-top: 4px; display: none; }
 .pass-wrapper { position: relative; }
-#btn-toggle-pass, #btn-generar-pass {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: none; border: none; cursor: pointer; padding: 10px; font-size: 12px;
-}
-#btn-toggle-pass { right: 80px; color: #555; }
-#btn-generar-pass { right: 10px; color: var(--color-primario); font-weight: bold; }
 
 /* Modales y Notificaciones */
 .modal-overlay {

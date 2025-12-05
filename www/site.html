@@ -9,34 +9,45 @@
 <body>
     <div class="container" style="max-width: 600px; margin-top: 50px;">
         <header class="header-app">
-            <h1 id="titulo-form">Añadir Nuevo Sitio</h1>
+            <h1 id="titulo-form">Gestión de Sitio</h1>
             <button id="btn-cancelar" class="btn-secundario">Cancelar</button>
         </header>
         
-        <div class="pagina-contenido">
+        <div class="pagina-contenido" style="padding: 20px;">
             <form id="form-sitio">
+                <!-- ID oculto para saber si editamos -->
                 <input type="hidden" id="sitio-id">
                 
                 <div class="form-grupo">
-                    <label>Nombre del Sitio</label>
-                    <input type="text" id="sitio-nombre" required>
-                    <span class="mensaje-error">Campo obligatorio</span>
+                    <label>Nombre del Sitio *</label>
+                    <input type="text" id="sitio-nombre" placeholder="Ej: Netflix, Banco, Gmail..." required>
+                </div>
+
+                <!-- NUEVO CAMPO: URL -->
+                <div class="form-grupo">
+                    <label>URL del Sitio</label>
+                    <input type="url" id="sitio-url" placeholder="https://www.ejemplo.com">
                 </div>
                 
                 <div class="form-grupo">
-                    <label>Usuario / Email</label>
+                    <label>Usuario / Email *</label>
                     <input type="text" id="sitio-usuario" required>
-                    <span class="mensaje-error">Campo obligatorio</span>
                 </div>
                 
                 <div class="form-grupo">
-                    <label>Contraseña</label>
+                    <label>Contraseña *</label>
                     <div class="pass-wrapper">
                         <input type="password" id="sitio-pass" required>
                         <button type="button" id="btn-toggle">Ver</button>
                         <button type="button" id="btn-gen">Generar</button>
                     </div>
                     <span class="mensaje-error">Mínimo 8 caracteres</span>
+                </div>
+
+                <!-- NUEVO CAMPO: DESCRIPCIÓN -->
+                <div class="form-grupo">
+                    <label>Descripción / Notas</label>
+                    <textarea id="sitio-desc" rows="4" placeholder="Notas adicionales, preguntas de seguridad, etc..."></textarea>
                 </div>
                 
                 <div style="text-align: right; margin-top: 20px;">
